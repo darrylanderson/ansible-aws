@@ -1,0 +1,21 @@
+
+elasticsearch_version: 5.3.0
+elasticsearch_version_check: 5.3.0
+elasticsearch_apt_package_name: "elasticsearch-{{ elasticsearch_version }}.deb"
+elasticsearch_download_url: "https://artifacts.elastic.co/downloads/elasticsearch/{{ elasticsearch_apt_package_name }}"
+
+# elasticsearch_repo_version: 5.x
+# elasticsearch_pkg: elasticsearch
+#
+# elasticsearch_gpg_key_url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+# elasticsearch_apt_repository: deb http://packages.elastic.co/elasticsearch/{{ elasticsearch_repo_version }}/debian stable main
+
+# elasticsearch_plugin_marvel_version: 2.3.1
+# elasticsearch_plugin_license_version: 2.3.1
+# elasticsearch_plugin_watcher_version: 2.3.1
+elasticsearch_with_plugin: false
+
+elasticsearch_discovery_zen_minimum_master_nodes: 1
+elasticsearch_heap_size_percentage: 0.5
+
+apt_cache_valid_time: 600

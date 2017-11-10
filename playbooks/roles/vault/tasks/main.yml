@@ -1,0 +1,86 @@
+- name: "Create the vault group"
+  group:
+    name: vault
+    system: yes
+  tags: ['vault']
+
+- name: "Create the vault user"
+  user:
+    name: vault
+    groups: "{{ vault_groups|default('vault') }}"
+    createhome: no
+    system: yes
+  tags: ['vault']
+
+- name: "Check installed vault version"
+  shell: vault version | grep -Po '(?<=Vault v)(\d+.\d+.\d+)'
+  ignore_errors: True
+  changed_when: False
+  register: vault_installed_version
+  tags: ['vault']
+
+- name: "Download vault"
+  get_url:
+    url: "https://releases.hashicorp.com/vault/{{ vault_version }}/vault_{{ vault_version }}_{{ vault_platform }}.zip"
+    dest: "/tmp/vault_{{ vault_version }}_{{ vault_platform }}.zip"
+    sha256sum: "{{ vault_checksum }}"
+    owner: root
+    group: root
+    mode: 0644
+  register: vault_download
+  when: vault_installed_version|failed or vault_installed_version.stdout != vault_version
+  tags: ['vault']
+
+- name: "Make sure that unzip is installed"
+  package: name=unzip state=present
+
+- name: "Unzip vault archive"
+  unarchive:
+    src: "{{ vault_download.dest }}"
+    dest: /usr/local/bin
+    copy: no
+    owner: root
+    group: root
+    mode: 0755
+  when: vault_installed_version|failed or vault_installed_version.stdout != vault_version
+  notify: Restart vault
+  tags: ['vault']
+
+- name: "Create vault directories"
+  file:
+    path: "{{ item }}"
+    owner: vault
+    group: vault
+    mode: 0755
+    state: directory
+  with_items:
+    - /var/log/vault
+    - /var/lib/vault
+  tags: ['vault']
+
+- name: "Configure vault"
+  template:
+    dest: /etc/vault.hcl
+    src: "vault.hcl.j2"
+    owner: vault
+    group: vault
+    mode: 0644
+  notify: Restart vault
+  tags: ['vault', 'files']
+
+- name: "Install the systemd unit file"
+  copy:
+    dest: /etc/systemd/system/vault.service
+    src: vault.systemd
+    owner: root
+    group: root
+    mode: 0644
+  notify: Reload systemd
+  tags: ['vault', 'files']
+
+- name: "Ensure vault is started and enabled on boot"
+  service:
+    name: vault
+    state: started
+    enabled: yes
+  tags: ['vault']

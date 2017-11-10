@@ -1,0 +1,13 @@
+---
+- name: Restart the vault-ui container
+  docker_container:
+    name: vault-ui
+    image: djenriquez/vault-ui
+    state: started
+    restart: yes
+    ports:
+     - "8000:8000"
+    env:
+        VAULT_URL_DEFAULT: https://vault.internal-danderson.com:8443
+        VAULT_AUTH_DEFAULT: TOKEN
+        NODE_TLS_REJECT_UNAUTHORIZED: 0

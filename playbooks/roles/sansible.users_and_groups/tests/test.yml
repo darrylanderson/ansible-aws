@@ -1,0 +1,59 @@
+---
+
+- name: Test users_and_groups
+  hosts: all
+
+  roles:
+    - role: sansible.users_and_groups
+      users_and_groups:
+        groups:
+          - name: lorem
+          - name: ipsum
+            system: yes
+        users:
+          - name: lorem.ipsum
+            groups:
+              - ipsum
+              - lorem
+            ssh_key: ./lorem.ipsum.pub
+          - name: dolor.ament
+            groups:
+              - ipsum
+          - name: no.extra.group
+
+    - role: sansible.users_and_groups
+      users_and_groups:
+        sudoers:
+          - name: ipsum
+            user: "%ipsum"
+            runas: "ALL=(ALL)"
+            commands: "NOPASSWD: ALL"
+
+    - role: sansible.users_and_groups
+      users_and_groups:
+        users:
+          - name: nemo.enim
+            ssh_key: ./lorem.ipsum.pub
+
+    - role: sansible.users_and_groups
+      users_and_groups:
+        groups:
+          - name: voluptatem
+        users:
+          - name: iste.natus
+            group: voluptatem
+            ssh_key: ./lorem.ipsum.pub
+
+  post_tasks:
+    - name: User lorem.ipsum should have public key added
+      become: yes
+      become_user: lorem.ipsum
+      shell: cat /home/lorem.ipsum/.ssh/authorized_keys | grep 'ssh-rsa AAAAB3NzaC1yc2E'
+      tags:
+        - assert
+
+    - name: Group ipsum added to sudoers
+      become: yes
+      shell: "cat /etc/sudoers.d/ipsum | grep -E 'ipsum\\s+ALL=\\(ALL\\)\\s+NOPASSWD: ALL'"
+      tags:
+        - assert

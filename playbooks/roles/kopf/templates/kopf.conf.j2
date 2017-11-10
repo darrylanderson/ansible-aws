@@ -1,0 +1,14 @@
+server {
+  listen       8080;
+  server_name  {{ ec2_private_ip_address }};
+
+  location ~ ^/es.*$ {
+    proxy_pass {{ elasticsearch_url }};
+    rewrite ^/es(.*) /$1 break;
+  }
+
+  location ~ ^/kopf/.*$ {
+    proxy_pass {{ elasticsearch_url }};
+    rewrite ^/kopf/(.*) /_plugin/kopf/$1 break;
+  }
+}

@@ -1,0 +1,16 @@
+[Unit]
+Description=Vault secret store
+Documentation=https://vaultproject.io/docs/
+After=network.target
+ConditionFileNotEmpty=/etc/vault.hcl
+
+[Service]
+Restart=on-failure
+User=vault
+Group=vault
+PermissionsStartOnly=true
+ExecStartPre=/sbin/setcap 'cap_ipc_lock=+ep' /usr/local/bin/vault
+ExecStart=/usr/local/bin/vault server -config=/etc/vault.hcl
+
+[Install]
+WantedBy=multi-user.target

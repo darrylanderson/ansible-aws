@@ -1,0 +1,76 @@
+---
+- set_fact:
+    elasticsearch_host: "{{ hostvars[inventory_hostname]['ansible_eth1']['ipv4']['address'] }}:9200"
+
+- name: Check if Elasticsearch is already at the right version
+  shell: dpkg -s elasticsearch | grep Version | awk '{print $2}'
+  register: installed_version
+  check_mode: no
+  ignore_errors: True
+  changed_when: False
+
+- name: Download Elasticsearch
+  get_url:
+    url: "{{ elasticsearch_download_url }}"
+    dest: /tmp
+  when: installed_version.stdout != '{{ elasticsearch_version_check }}'
+
+- name: Install Elasticsearch
+  apt: deb="/tmp/{{ elasticsearch_apt_package_name }}"
+  when: installed_version.stdout != '{{ elasticsearch_version_check }}' and not ansible_check_mode
+
+# - name: Import Elastic GPG Key
+#   apt_key: url="{{ elasticsearch_gpg_key_url }}" state=present
+#
+# - name: Add Elastic Repo into source list
+#   apt_repository:
+#     repo: "{{ elasticsearch_apt_repository }}"
+# #    filename: elasticsearch
+#     state: present
+#     update_cache: yes
+#
+# - name: Install Elasticsearch
+#   apt: name={{ elasticsearch_pkg }} state=present update_cache=yes cache_valid_time={{ apt_cache_valid_time }}
+#   notify: restart elasticsearch
+
+- include: plugins.yml
+  when: elasticsearch_with_plugin
+
+- name: Configuring Elasticsearch Defaults
+  template:
+    src: default/elasticsearch.j2
+    dest: /etc/default/elasticsearch
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart elasticsearch
+
+- name: Configuring JVM Elasticsearch
+  template:
+    src: jvm.options.j2
+    dest: /etc/elasticsearch/jvm.options
+    owner: root
+    group: elasticsearch
+    mode: 0644
+  notify: restart elasticsearch
+
+- name: Configuring Logging Elasticsearch
+  template:
+    src: log4j2.properties.j2
+    dest: /etc/elasticsearch/log4j2.properties
+    owner: root
+    group: elasticsearch
+    mode: 0644
+  notify: restart elasticsearch
+
+- name: Configuring Elasticsearch
+  template:
+    src: elasticsearch.yml.j2
+    dest: /etc/elasticsearch/elasticsearch.yml
+    owner: root
+    group: elasticsearch
+    mode: 0644
+  notify: restart elasticsearch
+
+- name: Flush handlers
+  meta: flush_handlers
