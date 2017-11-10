@@ -1,0 +1,31 @@
+---
+- name: Ensure pip is installed.
+  apt: name=python-pip state=installed
+
+- name: Install required dependencies.
+  pip:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - argparse
+
+- name: Install Elasticsearch Curator
+  pip:
+    name: elasticsearch-curator
+    state: latest
+
+- name: Create /etc/curator
+  file: path=/etc/curator state=directory mode=0755 owner=root
+
+- name: Copy curator config
+  template: src=curator.yml.j2 dest=/etc/curator/curator.yml mode=0644 owner=root group=root backup=yes
+
+- name: Copy curator actions files
+  template: src=actions.yml.j2 dest=/etc/curator/actions.yml mode=0644 owner=root group=root backup=yes
+
+- name: Configure cron jobs for Elasticsearch Curator
+  cron:
+    name: "Delete old elasticsearch indices"
+    job: "/usr/local/bin/curator --config /etc/curator/curator.yml /etc/curator/actions.yml"
+    minute: 0
+    hour: 1

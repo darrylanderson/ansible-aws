@@ -1,0 +1,11 @@
+---
+- apt_repository: repo="ppa:webupd8team/java" state=present
+
+- shell: echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
+
+- apt: name={{item}} state=present
+  with_items:
+    - oracle-java8-set-default
+    - oracle-java8-installer
+    - oracle-java8-unlimited-jce-policy
+    - aspectj

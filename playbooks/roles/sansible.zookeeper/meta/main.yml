@@ -1,0 +1,22 @@
+---
+
+galaxy_info:
+  author: "Wojtek Oledzki"
+  description: "Install Apache Zookeeper."
+  license: MIT
+  min_ansible_version: 2.0
+  platforms:
+    - name: Ubuntu
+      versions:
+        - trusty
+  categories:
+    - development
+
+dependencies:
+  - role: sansible.users_and_groups
+    users_and_groups:
+      groups:
+        - name: zookeeper
+      users:
+        - name: zookeeper
+          group: zookeeper

@@ -1,0 +1,33 @@
+---
+# Necessary for Ubuntu 16.04
+- hosts: tag_AppRole_Kafka
+  become: yes
+  become_user: root
+  become_method: sudo
+  gather_facts: False
+  tasks:
+  - name: install python 2
+    raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+
+# Install kafka and zookeeper
+- hosts: tag_AppRole_Kafka
+  become: yes
+  become_user: root
+  become_method: sudo
+  roles:
+    - role: sansible.kafka
+      kafka:
+        aws_cluster_assigned_id:
+          enabled: true
+          id_tag_name: kafka_broker_id
+          # A ZK cluster behind an ELB
+        zookeeper_hosts:
+          - zookeeper.app.internal
+
+# Create kafka topics
+- hosts: tag_AppRole_Kakfa
+  become: yes
+  become_user: root
+  become_method: sudo
+  roles:
+    - kafka.topics

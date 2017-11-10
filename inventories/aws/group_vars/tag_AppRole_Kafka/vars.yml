@@ -1,0 +1,9 @@
+---
+kafka_topics:
+  logging.app_server.slf4j:
+    partitions: 2
+    replication_factor: 3
+  tracking.page_view.consumer_app:
+    partitions: 2
+    replication_factor: 3
+

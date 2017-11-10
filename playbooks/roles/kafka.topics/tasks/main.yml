@@ -1,0 +1,5 @@
+---
+- name: Create topics
+  shell: >
+    /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --zookeeper localhost:2181 --topic {{item.key}} --partitions {{item.value.partitions}} --replication-factor {{item.value.replication_factor}};
+  with_dict: "{{kafka_topics}}"

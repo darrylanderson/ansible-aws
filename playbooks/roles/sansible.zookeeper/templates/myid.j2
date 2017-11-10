@@ -1,0 +1,5 @@
+{%- if zookeeper.aws_cluster_autodiscover.data is defined -%}
+{{ zookeeper.aws_cluster_autodiscover.data.id }}
+{%- else -%}
+{{ zookeeper.id }}
+{%- endif -%}

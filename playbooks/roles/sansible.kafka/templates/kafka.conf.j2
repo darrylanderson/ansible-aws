@@ -1,0 +1,14 @@
+description "Kafka"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+limit nofile 32768 32768
+
+# Rather than using setuid/setgid sudo is used because the pre-start task must run as root
+exec sudo -Hu {{ kafka.user }} -g {{ kafka.group }} \
+    KAFKA_HEAP_OPTS="{{ kafka.heap_opts }}" \
+    /home/{{ kafka.user }}/kafka/bin/kafka-server-start.sh \
+    /home/{{ kafka.user }}/kafka/config/server.properties

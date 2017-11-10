@@ -1,0 +1,140 @@
+---
+
+- name: Copy AWS autodiscover script
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  copy:
+    src: aws_cluster_autodiscover
+    dest: "/home/{{ zookeeper.user }}/bin/aws_cluster_autodiscover"
+    owner: "{{ zookeeper.user }}"
+    group: "{{ zookeeper.group }}"
+    mode: 0750
+  when: zookeeper.aws_cluster_autodiscover.enabled
+
+- name: Run AWS autodiscover script and grab ID
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  command: "./aws_cluster_autodiscover {{ zookeeper.hosts | join(',') }} {{ zookeeper.aws_cluster_autodiscover.r53_zone_id }} \"{{ zookeeper.aws_cluster_autodiscover.lookup_filter }}\" {{ zookeeper.aws_cluster_autodiscover.id_tag_name}}"
+  args:
+    chdir: "/home/{{ zookeeper.user }}/bin"
+  register: aws_cluster_autodiscover
+  until: aws_cluster_autodiscover | success
+  retries: 4
+  delay: 15
+  when: zookeeper.aws_cluster_autodiscover.enabled
+
+- name: Wait for server
+  pause:
+    seconds: "{{ zookeeper.wait_for_server }}"
+  when: zookeeper.aws_cluster_autodiscover.enabled
+
+# Combine is used with set fact as successive calls to the module
+# seem to remove previous values added to hashes
+- name: Set cluster facts based on AWS autodiscover script output
+  set_fact:
+    zookeeper: "{{ zookeeper | combine( {
+        'aws_cluster_autodiscover': {
+          'data': aws_cluster_autodiscover.stdout | from_json
+        }
+      }, recursive=True) }}"
+  when: zookeeper.aws_cluster_autodiscover.enabled
+
+- name: Assigned ID EC2 fact hunt
+  action: ec2_facts
+  register: ec2_vars
+  until: ec2_vars | success
+  retries: "{{ zookeeper.aws.retries }}"
+  delay: "{{ zookeeper.aws.delay }}"
+  when: zookeeper.aws_cluster_assigned_id.enabled
+
+- name: Assigned ID grab tags from EC2 instance
+  ec2_tag:
+    region: "{{ ansible_ec2_placement_region }}"
+    resource: "{{ ansible_ec2_instance_id }}"
+    state: list
+  register: assigned_id_instance_tags
+  when: ansible_ec2_instance_id is defined
+    and zookeeper.aws_cluster_assigned_id.enabled
+  retries: "{{ zookeeper.aws.retries }}"
+  delay: "{{ zookeeper.aws.delay }}"
+  until: assigned_id_instance_tags | success
+
+- name: Assigned ID set Broker ID
+  set_fact:
+    zookeeper: "{{ zookeeper | combine( {
+        'id': assigned_id_instance_tags.tags[zookeeper.aws_cluster_assigned_id.id_tag_name]
+      }, recursive=True) }}"
+  when: ansible_ec2_instance_id is defined
+    and zookeeper.aws_cluster_assigned_id.enabled
+
+- name: Setup Zookeeper environment config
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  template:
+    dest: "{{ zookeeper.conf_dir }}/environment"
+    mode: 0644
+    src: environment.j2
+  notify:
+    - restart zookeeper
+
+- name: Setup myid
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  template:
+    dest: "{{ zookeeper.data_dir }}/myid"
+    src: myid.j2
+  notify:
+    - restart zookeeper
+
+- name: Setup zoo.cfg file
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  template:
+    dest: "{{ zookeeper.conf_dir }}/zoo.cfg"
+    mode: 0644
+    src: zoo.cfg.j2
+  notify:
+    - restart zookeeper
+
+- name: Create Zookeeper log4j config
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  template:
+    dest: "{{ zookeeper.conf_dir }}/log4j.properties"
+    mode: 0644
+    src: log4j.properties.j2
+  notify:
+    - restart zookeeper
+
+- name: Start Zookeeper service
+  become: yes
+  service:
+    name: zookeeper
+    state: started
+
+- name: Flush handlers to ensure Zookeeper is up to date
+  meta: flush_handlers
+
+- name: Wait for Zookeeper client port
+  wait_for:
+    port: "{{ zookeeper.client_port }}"
+    state: started
+    timeout: 60
+
+- name: Copy zookeeper check script
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  copy:
+    src: zookeeper_check
+    dest: "/home/{{ zookeeper.user }}/bin/zookeeper_check"
+    owner: "{{ zookeeper.user }}"
+    group: "{{ zookeeper.group }}"
+    mode: 0750
+
+- name: Run zookeeper check script
+  become: yes
+  become_user: "{{ zookeeper.user }}"
+  shell: "/home/{{ zookeeper.user }}/bin/zookeeper_check"
+  async: 7200
+  poll: 0
+  when: zookeeper.aws_cluster_autodiscover.enabled

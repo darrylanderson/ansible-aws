@@ -1,0 +1,33 @@
+---
+
+group: stable
+dist: trusty
+
+language: python
+python: "2.7"
+
+branches:
+  only:
+    - develop
+    - master
+
+env:
+  - ANSIBLE_INSTALL_VERSION=2.0.2.0
+  - ANSIBLE_INSTALL_VERSION=2.1.5.0
+  - ANSIBLE_INSTALL_VERSION=2.2.3.0
+  - ANSIBLE_INSTALL_VERSION=2.3.1.0
+
+before_install:
+  # Make sure everything's up to date.
+  - sudo apt-get update -qq
+
+install:
+  # dowload dependencies
+  - make test_deps
+
+script:
+  - make lint
+  - make test_ansible
+
+notifications:
+  webhooks: https://galaxy.ansible.com/api/v1/notifications/

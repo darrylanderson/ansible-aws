@@ -1,0 +1,24 @@
+---
+- name: Ensure kafka-manager group exists
+  group: name=kafka-manager state=present system=yes
+
+- name: Ensure kafka-manager user exists
+  user: name=kafka-manager group=kafka-manager createhome=no shell=/bin/false system=yes state=present
+
+- name: Create kafka-manager install directory
+  file: path=/opt/kafka-manager state=directory owner=kafka-manager mode=0755
+
+- name: Fetch and unpack the kafka-manager artifact
+  unarchive: src=https://github.com/yahoo/kafka-manager/archive/1.3.3.14.tar.gz dest=/opt/kafka-manager copy=no owner=kafka-manager
+
+- name: Create symlink
+  file: src=/opt/kafka-manager/kafka-manager-1.3.3.14 dest=/opt/kafka-manager/latest state=link
+
+- name: Set proper ownership of kafka-manager install
+  file: path=/opt/kafka-manager owner=kafka-manager group=kafka-manager state=directory recurse=yes
+
+- name: Copy kafka-manager init.d script
+  template: src=init.d/kafka-manager.j2 dest=/etc/init.d/kafka-manager mode=0755
+
+- name: Ensure kafka-manager is started
+  service: name=kafka-manager state=started enabled=yes

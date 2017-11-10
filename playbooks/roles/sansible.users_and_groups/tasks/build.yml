@@ -1,0 +1,73 @@
+---
+
+- name: Manage system groups
+  become: yes
+  group:
+    name: "{{ item.name }}"
+    system: "{{ item.system | default(omit) }}"
+  with_items: users_and_groups.groups
+
+- name: Manage systems users
+  become: yes
+  user:
+    comment: "{{ item.gecos | default(item.name) }}"
+    createhome: "{{ item.createhome | default('yes') }}"
+    group: "{{ item.group | default(omit) }}"
+    groups: "{{ item.groups | default([ ]) | join(',') | default(omit) }}"
+    name: "{{ item.name }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    state: "{{ item.state | default(omit) }}"
+  with_items: users_and_groups.users
+
+- name: Update home directory permissions
+  become: yes
+  file:
+    group: "{{ item.group | default(omit) }}"
+    mode: 0750
+    owner: "{{ item.name }}"
+    path: "/home/{{ item.name }}"
+    state: directory
+  with_items: users_and_groups.users
+  when: not (item.createhome is defined and not item.createhome)
+
+- name: Create .ssh directory
+  become: yes
+  file:
+    path: /home/{{ item.name }}/.ssh
+    owner: "{{ item.name }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: 0700
+    state: directory
+  with_items: users_and_groups.users
+
+- name: Copy ssh auth keys
+  become: yes
+  authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ lookup('file', item.ssh_key) }}"
+  with_items: users_and_groups.users
+  when: item.ssh_key is defined
+
+- name: Ensure /etc/sudoers.d exists
+  become: yes
+  file:
+    path: /etc/sudoers.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0750
+
+- name: Enable include of /etc/sudoers.d
+  become: yes
+  lineinfile:
+    name: /etc/sudoers
+    regexp: "^#includedir"
+    line: "#includedir /etc/sudoers.d"
+    state: present
+
+- name: Create sudoers configure
+  become: yes
+  template:
+    src: sudoers.j2
+    dest: "/etc/sudoers.d/{{ item.name }}"
+  with_items: users_and_groups.sudoers

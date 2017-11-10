@@ -1,0 +1,22 @@
+/*
+ * Vault configuration. See: https://vaultproject.io/docs/config/
+ */
+
+
+listener "tcp" {
+	/*
+	 * By default Vault listens on localhost only.
+	 * Make sure to enable TLS support otherwise.
+	 */
+	tls_disable = 1
+	address = "{{ ec2_private_ip_address }}:8200"
+}
+
+
+storage "dynamodb" {
+    ha_enabled    = "true"
+    region        = "us-east-1"
+    table         = "hashicorp-vault-data"
+    redirect_addr = "https://vault.internal-danderson.com:8443"
+}
+

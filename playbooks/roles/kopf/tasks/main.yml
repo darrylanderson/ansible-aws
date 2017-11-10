@@ -1,0 +1,20 @@
+---
+- name: Update apt cache
+  apt: update_cache=yes cache_valid_time=86400
+
+- name: Ensure nginx is installed
+  apt: "pkg={{ item }} state=present"
+  with_items:
+    - nginx
+
+- name: Add kopf reverse proxy config
+  template: src=templates/kopf.conf.j2
+            dest=/etc/nginx/sites-available/kopf.conf
+
+- name: Activate the kopf reverse proxy
+  file: src=/etc/nginx/sites-available/kopf.conf
+        dest=/etc/nginx/sites-enabled/kopf.conf
+        state=link
+
+- name: Restart nginx
+  service: name=nginx state=restarted enabled=yes

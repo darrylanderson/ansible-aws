@@ -1,0 +1,51 @@
+---
+- hosts: all
+  gather_facts: no
+  become: no
+
+  vars:
+    ansible_memtotal_mb: 3952 # 4096
+
+  tasks:
+    - name: Configure Elasticsearch Default 5%
+      template:
+        src: ../../templates/default/elasticsearch.j2
+        dest: ./tmp/elasticsearch.default_5pc.txt
+      vars:
+        elasticsearch_heap_size_percentage: 0.05
+
+    - name: Configure Elasticsearch Default 25%
+      template:
+        src: ../../templates/default/elasticsearch.j2
+        dest: ./tmp/elasticsearch.default_25pc.txt
+      vars:
+        elasticsearch_heap_size_percentage: 0.25
+
+    - name: Configure Elasticsearch Default 50%
+      template:
+        src: ../../templates/default/elasticsearch.j2
+        dest: ./tmp/elasticsearch.default_50pc.txt
+      vars:
+        elasticsearch_heap_size_percentage: 0.5
+
+    - name: Configure Elasticsearch Default 75%
+      template:
+        src: ../../templates/default/elasticsearch.j2
+        dest: ./tmp/elasticsearch.default_75pc.txt
+      vars:
+        elasticsearch_heap_size_percentage: 0.75
+
+    - name: Configure Elasticsearch Default Explicit Value
+      template:
+        src: ../../templates/default/elasticsearch.j2
+        dest: ./tmp/elasticsearch.default_explicit.txt
+      vars:
+        elasticsearch_heap_size: 2g
+
+    - name: Configure Elasticsearch via Percentage and Default Explicit Value
+      template:
+        src: ../../templates/default/elasticsearch.j2
+        dest: ./tmp/elasticsearch.both.txt
+      vars:
+        elasticsearch_heap_size_percentage: 0.5
+        elasticsearch_heap_size: 2g
