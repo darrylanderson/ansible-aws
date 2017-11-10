@@ -16,4 +16,3 @@
   roles:
     - role: java8
     - role: elasticsearch
-    - role:
