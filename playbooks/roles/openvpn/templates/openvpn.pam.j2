@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+
+{% if openvpn_use_pam %}
+auth           requisite    /lib/security/pam_google_authenticator.so secret=/etc/openvpn/google-authenticator/${USER} user=gauth forward_pass
+auth           required     pam_unix.so use_first_pass
+{% else %}
+@include common-auth
+@include common-account
+{% endif %}
