@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# {{ ansible_managed }}
+
+. {{openvpn_etcdir}}/vars
+
+# OpenVPN configuration Directory
+OPENVPN_CFG_DIR=/etc/openvpn
+
+# Where this script should create the OpenVPN client config files
+OUTPUT_DIR=/etc/openvpn/client-config
+
+# Base configuration for the client
+BASE_CONFIG=/etc/openvpn/keys/client.ovpn
+
+# MFA Label
+MFA_LABEL='OpenVPN Server'
+
+# MFA User
+MFA_USER=gauth
+
+# MFA Directory
+MFA_DIR=/etc/openvpn/google-authenticator
+
+
+
+function build_key() {
+  user_id=$1
+  $EASY_RSA/pkitool $user_id
+}
+
+function send_mail() {
+  attachment=$1
+
+  which mutt 2>&1 >/dev/null
+
+  if [ $? -ne 0 ]; then
+    echo "INFO: mail program not found, an email will not be sent to the user"
+  else
+    echo -en "Please, provide the e-mail of the user\n> "
+    read email
+    echo "INFO: Sending email"
+    echo "Here is your OpenVPN client configuration" | mutt -s "Your OpenVPN configuration" -a "$attachment" -- "$email"
+  fi
+}
+
+function generate_mfa() {
+  user_id=$1
+
+  if [ "$user_id" == "" ]; then
+    echo "ERROR: No user id provided to generate MFA token"
+    exit 1
+  fi
+
+  echo "INFO: Creating user ${user_id}"
+  useradd -s /bin/nologin "$user_id"
+
+  echo "> Please provide a password for the user"
+  passwd "$user_id"
+
+  echo "INFO: Generating MFA Token"
+  google-authenticator -t -d -r3 -R30 -f -l "${MFA_LABEL}" -s $MFA_DIR/${user_id}
+  chown $MFA_USER $MFA_DIR/${user_id}
+}
+
+function main() {
+  user_id=$1
+
+  if [ "$user_id" == "" ]; then
+    echo "ERROR: No user id provided"
+    exit 1
+  fi
+
+  build_key $user_id
+
+  if [ ! -f ${KEY_DIR}/ca.crt ]; then
+    echo "ERROR: CA certificate not found"
+    exit 1
+  fi
+
+  if [ ! -f ${KEY_DIR}/${user_id}.crt ]; then
+    echo "ERROR: User certificate not found"
+    exit 1
+  fi
+
+  if [ ! -f ${KEY_DIR}/${user_id}.key ]; then
+    echo "ERROR: User private key not found"
+    exit 1
+  fi
+
+  if [ ! -f ${KEY_DIR}/ta.key ]; then
+    echo "ERROR: TLS Auth key not found"
+    exit 1
+  fi
+
+  cat ${BASE_CONFIG} \
+      <(echo -e '<ca>') \
+      ${KEY_DIR}/ca.crt \
+      <(echo -e '</ca>\n<cert>') \
+      ${KEY_DIR}/${user_id}.crt \
+      <(echo -e '</cert>\n<key>') \
+      ${KEY_DIR}/${user_id}.key \
+      <(echo -e '</key>\n<tls-auth>') \
+      ${KEY_DIR}/ta.key \
+      <(echo -e '</tls-auth>') \
+      > ${OUTPUT_DIR}/${user_id}.ovpn
+
+  echo "INFO: Key created in ${OUTPUT_DIR}/${user_id}.ovpn"
+
+  generate_mfa $user_id
+  send_mail "${OUTPUT_DIR}/${user_id}.ovpn"
+
+  exit 0
+}
+
+# ##############################################################################
+
+main $1
