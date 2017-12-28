@@ -1,7 +1,7 @@
 # ansible-aws
 
 This repo contains a work-in-progress for testing out various ansible roles and playbooks
-to install and manager Kafka, Zookeeper, and Elasticsearch in AWS, using Hashicorp Vault
+to install and manage Kafka, Zookeeper, and Elasticsearch in AWS, using Hashicorp Vault
 for all secret management.
 
 ## TODO
