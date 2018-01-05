@@ -9,7 +9,7 @@
   - name: install python 2
     raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
 
-
+# For a local playbook run:  ansible-playbook -i "localhost," -c local --ask-sudo-pass playbooks/setup-openvpn.yml
 - hosts: all
   become: yes
   become_user: root
