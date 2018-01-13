@@ -1,0 +1,8 @@
+---
+- name: add/remove packages
+  apt:
+    name: "{{ item.name | default(item)  }}"
+    state: "{{ item.state | default(\"present\") }}"
+    update_cache: "{{ packages_update_cache | default(omit) }}"
+    cache_valid_time: "{{ packages_cache_valid_time }}"
+  with_items: "{{ packages }}"

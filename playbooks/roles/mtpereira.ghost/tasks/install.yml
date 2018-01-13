@@ -1,0 +1,34 @@
+---
+- name: install - install Ghost
+  npm:
+    path: "{{ ghost_install_dir }}"
+    production: yes
+    state: present
+  become: yes
+
+- name: install - add configurations
+  template:
+    src: config.js.j2
+    dest: "{{ ghost_install_dir }}/config.js"
+    owner: "{{ ghost_user_name }}"
+    group: "{{ ghost_user_group }}"
+    mode: 0644
+  notify: ghost - restart service
+  become: yes
+
+- name: install - add init script
+  template:
+    src: init.ghost.j2
+    dest: "/etc/init.d/{{ ghost_service_name }}"
+    owner: root
+    group: root
+    mode: 0755
+  become: yes
+
+- name: install - enable Ghost service
+  service:
+    name: "{{ ghost_service_name }}"
+    enabled: yes
+    state: started
+  become: yes
+

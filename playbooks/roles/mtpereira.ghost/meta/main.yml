@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  author: Manuel Tiago Pereira
+  description: Role for installing Ghost, a blogging platform.
+  license: BSD
+  min_ansible_version: 2.2
+  platforms:
+  - name: Ubuntu
+    versions:
+    - trusty
+  - name: Debian
+    versions:
+    - wheezy
+    - jessie
+  categories:
+  - web
+dependencies:
+  - role: SimpliField.node
+    nodejs_packages_update_cache: yes
+    when: ghost_nodejs_enabled
+    become: yes
+    tags: ghost_nodejs
+  - role: jdauphant.nginx
+    nginx_sites: "{{ ghost_nginx_sites }}"
+    when: ghost_nginx_enabled
+    become: yes
+    tags: ghost_nginx
+

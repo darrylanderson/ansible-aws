@@ -1,0 +1,64 @@
+---
+- name: tests - apply role for ghost_one
+  hosts: all
+  tags: ghost_tests_apply
+
+  vars:
+    ghost_install_dir: /var/www/ghost_one
+    ghost_config_server:
+      host: "127.0.0.1"
+      port: "2368"
+    ghost_nginx_sites:
+      ghost_one:
+        - listen 80
+        - server_name {{ ghost_config_server.host }}
+        - proxy_set_header X-Real-IP $remote_addr
+        - proxy_set_header Host $http_host
+        - location / { proxy_pass {{ ghost_internal_url }}; }
+        - location ~ ^/ghost/setup { allow {{ ghost_nginx_admin_allowed_cidr }}; deny all; }
+  roles:
+      - role: ../..
+
+  post_tasks:
+    - name: tests - sleep for Ghost startup
+      pause:
+        seconds: 30
+        prompt: "Waiting for Ghost startup..."
+
+    - name: tests - install curl
+      apt:
+        pkg: curl
+        install_recommends: no
+        state: present
+      become: yes
+
+    - include: tasks.yml
+
+- name: tests - apply role for ghost_two
+  hosts: all
+  tags: ghost_tests_apply
+
+  vars:
+    ghost_install_dir: /var/www/ghost_two
+    ghost_config_server:
+      host: "127.0.0.1"
+      port: "2369"
+    ghost_nginx_sites:
+        ghost_two:
+          - listen 8080
+          - server_name {{ ghost_config_server.host }}
+          - proxy_set_header X-Real-IP $remote_addr
+          - proxy_set_header Host $http_host
+          - location / { proxy_pass {{ ghost_internal_url }}; }
+          - location ~ ^/ghost/setup { allow {{ ghost_nginx_admin_allowed_cidr }}; deny all; }
+  roles:
+      - role: ../..
+
+  post_tasks:
+    - name: tests - sleep for Ghost startup
+      pause:
+        seconds: 30
+        prompt: "Waiting for Ghost startup..."
+
+    - include: tasks.yml
+

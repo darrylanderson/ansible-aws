@@ -1,0 +1,27 @@
+---
+- name: sqlite3 - install node-gyp dependencies if libc is old
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 3600
+    state: present
+  become: yes
+  with_items:
+    - python
+    - build-essential
+
+- name: sqlite3 - install node-gyp if libc is old
+  npm:
+    name: node-gyp
+    global: yes
+    state: present
+  become: yes
+
+- name: sqlite3 - install sqlite3 from source if libc is old
+  command: npm install sqlite3 --from-source
+  args:
+    chdir: "{{ ghost_install_dir }}"
+    creates: "{{ ghost_install_dir }}/node_modules/sqlite3/lib/binding/node-v11-linux-x64/node_sqlite3.node"
+  become_user: "{{ ghost_user_name }}"
+  become: yes
+

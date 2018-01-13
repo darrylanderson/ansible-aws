@@ -1,0 +1,9 @@
+---
+ghost_fetch_url: https://ghost.org/zip/ghost-latest.zip
+ghost_fetch_dir: /tmp
+
+ghost_nodejs_pin_priority: 500
+ghost_nodejs_path: /usr/bin/node
+
+ghost_service_name: "{{ ghost_install_dir | basename }}"
+ghost_internal_url: http://{{ ghost_config_server.host }}:{{ ghost_config_server.port }}

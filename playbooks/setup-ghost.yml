@@ -1,0 +1,18 @@
+---
+# Necessary for Ubuntu 16.04
+- hosts: all
+  become: yes
+  become_user: root
+  become_method: sudo
+  gather_facts: False
+  tasks:
+  - name: install python 2
+    raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+
+# For a local playbook run:  ansible-playbook -i "localhost," -c local --ask-sudo-pass playbooks/setup-ghost.yml
+- hosts: all
+  become: yes
+  become_user: root
+  become_method: sudo
+  roles:
+  - mtpereira.ghost
